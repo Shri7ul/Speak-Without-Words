@@ -1,1 +1,61 @@
-<!-- main UI -->
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Speak Without Words</title>
+    <style>
+      body { font-family: Arial, sans-serif; padding: 16px; }
+      .wrap { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+      .card { padding: 12px; border: 1px solid #ddd; border-radius: 16px; }
+      img { width: 640px; height: 480px; border-radius: 16px; border: 1px solid #ccc; }
+      .badge { font-size: 22px; font-weight: 800; padding: 10px 14px; border-radius: 999px; display: inline-block; }
+      .meta { margin-top: 10px; color: #444; }
+      /* moods */
+      .neutral { background: #f2f2f2; }
+      .alert { background: #ffdddd; }
+      .good { background: #ddffdd; }
+      .bad { background: #ffe8cc; }
+      .calm { background: #dde9ff; }
+      .focus { background: #eee3ff; }
+    </style>
+  </head>
+  <body>
+    <h2>Speak Without Words (Live)</h2>
+
+    <div class="wrap">
+      <div class="card">
+        <img src="/video_feed" alt="camera stream" />
+      </div>
+
+      <div class="card" style="min-width: 260px;">
+        <div id="badge" class="badge neutral">…</div>
+        <div class="meta" id="meta">Confidence: 0.00</div>
+        <p style="margin-top:14px;">
+          Try: Open palm (STOP), Fist (HOLD), Peace (PEACE), Thumb up (YES), Thumb down (NO)
+        </p>
+      </div>
+    </div>
+
+    <script>
+      async function tick(){
+        try{
+          const res = await fetch("/predict");
+          const data = await res.json();
+
+          const badge = document.getElementById("badge");
+          badge.textContent = data.label;
+
+          // mood class swap
+          badge.className = "badge " + (data.mood || "neutral");
+
+          document.getElementById("meta").textContent =
+            "Confidence: " + (data.confidence ?? 0).toFixed(2) + " | Gesture: " + data.gesture;
+        }catch(e){
+          // ignore
+        }
+      }
+      setInterval(tick, 200);
+      tick();
+    </script>
+  </body>
+</html>
