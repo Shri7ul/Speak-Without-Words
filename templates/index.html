@@ -113,7 +113,7 @@
               <pre id="raw" class="text-[11px] leading-snug text-slate-700 whitespace-pre-wrap break-all"></pre>
             </div>
 
-            <div class="mt-6 text-xs text-slate-500">Tip: Keep palm facing camera for best stability.</div>
+            <div class="mt-6 text-xs text-slate-500">Tip: Hold gestures steady for better sequence accuracy.</div>
           </div>
 
           <!-- TRAINING MODE -->
@@ -147,11 +147,63 @@
               Tip: Hold each gesture ~1 sec for stable detection.
             </div>
           </div>
+
+          <!-- COMMAND LOG -->
+          <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-4">
+            <div class="flex items-center justify-between">
+              <h2 class="text-lg font-extrabold">Command Log</h2>
+              <button id="logClear"
+                class="px-2 py-1 rounded-lg border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-100 active:scale-[0.99]">
+                Clear
+              </button>
+            </div>
+
+            <div id="logList" class="mt-3 space-y-2"></div>
+
+            <div class="mt-3 text-xs text-slate-500">
+              Shows latest detected commands (changes only).
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
     <script>
+      // ================= VOICE SPEAK =================
+      // Toggle this to false if you don't want voice
+      const VOICE_ENABLED = true;
+
+      function speak(text){
+        if (!VOICE_ENABLED) return;
+
+        try{
+          const utter = new SpeechSynthesisUtterance(text);
+          utter.lang = "en-US";
+          utter.rate = 1.0;
+          utter.pitch = 1.0;
+
+          // stop previous speech
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(utter);
+        }catch(e){
+          console.log("Speech error", e);
+        }
+      }
+
+      // ================= OPTIONAL SOUND =================
+      // Uncomment if you want sound instead of voice
+      // Make sure file exists: static/sounds.mp3
+      /*
+      const helpSound = new Audio("/static/sounds.mp3");
+
+      function playHelpSound(){
+        try{
+          helpSound.currentTime = 0;
+          helpSound.play();
+        }catch(e){}
+      }
+      */
+
       let mode = "demo";
       let lastGesture = "NONE";
 
@@ -167,6 +219,9 @@
       const trainNext = document.getElementById("trainNext");
       const trainStop = document.getElementById("trainStop");
 
+      // log UI
+      const logClear = document.getElementById("logClear");
+
       modeBtn.addEventListener("click", () => {
         mode = (mode === "demo") ? "dev" : "demo";
         modeBtn.textContent = (mode === "demo") ? "Demo" : "Dev";
@@ -176,6 +231,10 @@
 
       clearBtn.addEventListener("click", () => {
         document.getElementById("historyRow").innerHTML = "";
+      });
+
+      logClear.addEventListener("click", () => {
+        document.getElementById("logList").innerHTML = "";
       });
 
       function moodStyles(mood){
@@ -220,6 +279,39 @@
         });
       }
 
+      function renderLog(events){
+        const box = document.getElementById("logList");
+        if (!box) return;
+
+        box.innerHTML = "";
+        const arr = (events || []).slice(0, 10);
+
+        if (arr.length === 0){
+          const empty = document.createElement("div");
+          empty.className = "text-sm text-slate-500";
+          empty.textContent = "No events yet…";
+          box.appendChild(empty);
+          return;
+        }
+
+        arr.forEach(ev => {
+          const row = document.createElement("div");
+          row.className = "flex items-center justify-between gap-3 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50";
+
+          const left = document.createElement("div");
+          left.className = "text-sm font-bold text-slate-900";
+          left.textContent = `${ev.t}  ${ev.g}`;
+
+          const right = document.createElement("div");
+          right.className = "text-xs font-bold text-slate-600";
+          right.textContent = `conf ${Number(ev.c ?? 0).toFixed(2)}`;
+
+          row.appendChild(left);
+          row.appendChild(right);
+          box.appendChild(row);
+        });
+      }
+
       function showBanner(el, ms=1500){
         el.classList.remove("hidden");
         el.classList.add("pop");
@@ -232,16 +324,9 @@
         return res.json();
       }
 
-      // Training buttons
-      trainStart.addEventListener("click", async () => {
-        await postJson("/training/start");
-      });
-      trainNext.addEventListener("click", async () => {
-        await postJson("/training/next");
-      });
-      trainStop.addEventListener("click", async () => {
-        await postJson("/training/stop");
-      });
+      trainStart.addEventListener("click", async () => { await postJson("/training/start"); });
+      trainNext.addEventListener("click", async () => { await postJson("/training/next"); });
+      trainStop.addEventListener("click", async () => { await postJson("/training/stop"); });
 
       function updateTrainingUI(training){
         const on = !!training?.enabled;
@@ -263,7 +348,6 @@
           const g = data.gesture || "NONE";
           const conf = Number(data.confidence ?? 0);
 
-          // Overlay badge
           const overlayBadge = document.getElementById("overlayBadge");
           overlayBadge.textContent = labelIcon(label);
           overlayBadge.className = "px-4 py-2 rounded-full font-extrabold text-white shadow-md " + moodStyles(mood);
@@ -287,15 +371,27 @@
           document.getElementById("confBar").style.width = Math.round(pct * 100) + "%";
 
           renderHistory(data.history);
+          renderLog(data.events);
 
           if (mode === "dev") {
             document.getElementById("raw").textContent = JSON.stringify(data, null, 2);
           }
 
-          // training
           updateTrainingUI(data.training);
 
-          // flashes + banners
+          // ================= SPEAK ON CHANGE =================
+          if (g !== lastGesture && g !== "NONE") {
+            // Speak human-friendly label: STOP / HELP / TEAM READY etc.
+            speak(label);
+
+            // OPTIONAL sound for HELP only (instead of voice)
+            /*
+            if (g === "HELP") {
+              playHelpSound();
+            }
+            */
+          }
+
           const helpFlash = document.getElementById("helpFlash");
           if (g === "HELP" && lastGesture !== "HELP") {
             helpFlash.classList.remove("hidden");
