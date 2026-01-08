@@ -3,22 +3,79 @@
   <head>
     <meta charset="utf-8" />
     <title>Speak Without Words</title>
+
     <style>
-      body { font-family: Arial, sans-serif; padding: 16px; }
-      .wrap { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
-      .card { padding: 12px; border: 1px solid #ddd; border-radius: 16px; }
-      img { width: 640px; height: 480px; border-radius: 16px; border: 1px solid #ccc; }
-      .badge { font-size: 22px; font-weight: 800; padding: 10px 14px; border-radius: 999px; display: inline-block; }
-      .meta { margin-top: 10px; color: #444; }
+      body {
+        font-family: Arial, sans-serif;
+        padding: 16px;
+        background: #fafafa;
+      }
+
+      .wrap {
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+
+      .card {
+        padding: 14px;
+        border: 1px solid #ddd;
+        border-radius: 16px;
+        background: white;
+      }
+
+      img {
+        width: 640px;
+        height: 480px;
+        border-radius: 16px;
+        border: 1px solid #ccc;
+      }
+
+      .badge {
+        font-size: 24px;
+        font-weight: 800;
+        padding: 12px 18px;
+        border-radius: 999px;
+        display: inline-block;
+        color: #000 !important;
+        min-width: 180px;
+        text-align: center;
+      }
+
+      .meta {
+        margin-top: 10px;
+        color: #333;
+        font-size: 14px;
+      }
+
       /* moods */
-      .neutral { background: #f2f2f2; }
-      .alert { background: #ffdddd; }
-      .good { background: #ddffdd; }
-      .bad { background: #ffe8cc; }
-      .calm { background: #dde9ff; }
-      .focus { background: #eee3ff; }
+      .neutral { background: #eaeaea; }
+      .alert   { background: #ffcccc; }
+      .calm    { background: #dde9ff; }
+      .focus   { background: #eee3ff; }
+
+      /* pulse animation for STOP / HELP */
+      .alert {
+        animation: pulse 0.9s infinite;
+      }
+
+      @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+      }
+
+      /* debug box */
+      #raw {
+        margin-top: 10px;
+        font-size: 12px;
+        color: #666;
+        word-break: break-all;
+      }
     </style>
   </head>
+
   <body>
     <h2>Speak Without Words (Live)</h2>
 
@@ -27,35 +84,73 @@
         <img src="/video_feed" alt="camera stream" />
       </div>
 
-      <div class="card" style="min-width: 260px;">
+      <div class="card" style="min-width: 300px;">
         <div id="badge" class="badge neutral">…</div>
         <div class="meta" id="meta">Confidence: 0.00</div>
-        <p style="margin-top:14px;">
-          Try: Open palm (STOP), Fist (HOLD), Peace (PEACE), Thumb up (YES), Thumb down (NO)
+        <div id="raw"></div>
+
+        <p style="margin-top:14px; line-height:1.5;">
+          Try:
+          <br>⛔ Open palm = STOP
+          <br>✋ Fist = WAIT
+          <br>💙 Peace = CALM
+          <br>🚨 Open palm high = HELP
         </p>
       </div>
     </div>
 
     <script>
+      let lastGesture = "NONE";
+
+      // 🔊 Optional sound (future use)
+      // To enable:
+      // 1) Put beep.mp3 inside /static folder
+      // 2) Uncomment the next line
+       const beep = new Audio("/static/beep.mp3");
+
       async function tick(){
         try{
-          const res = await fetch("/predict");
+          const res = await fetch("/predict?_=" + Date.now());
           const data = await res.json();
 
           const badge = document.getElementById("badge");
-          badge.textContent = data.label;
 
-          // mood class swap
+          // fallback chain: icon → text → label → gesture
+          const icon = data.icon || "";
+          const text = data.text || data.label || data.gesture || "…";
+
+          badge.innerText = icon ? (icon + " " + text) : text;
           badge.className = "badge " + (data.mood || "neutral");
 
-          document.getElementById("meta").textContent =
-            "Confidence: " + (data.confidence ?? 0).toFixed(2) + " | Gesture: " + data.gesture;
-        }catch(e){
-          // ignore
+          document.getElementById("meta").innerText =
+            "Confidence: " + (data.confidence ?? 0).toFixed(2) +
+            " | Gesture: " + (data.gesture || "NONE");
+
+          // Debug raw JSON (remove before final submission)
+          const raw = document.getElementById("raw");
+          if (raw) raw.innerText = "RAW: " + JSON.stringify(data);
+
+          // 🚨 HELP visual + sound trigger (sound optional)
+          if (data.gesture === "HELP" && lastGesture !== "HELP") {
+            document.body.style.background = "#ffe6e6";
+            setTimeout(() => {
+              document.body.style.background = "#fafafa";
+            }, 300);
+
+            // 🔔 Uncomment if you add beep.mp3
+             beep.play();
+          }
+
+          lastGesture = data.gesture;
+
+        } catch(err){
+          console.log(err);
         }
       }
+
       setInterval(tick, 200);
       tick();
     </script>
+
   </body>
 </html>

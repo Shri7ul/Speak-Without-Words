@@ -1,4 +1,3 @@
-# gesture detection logic
 import cv2
 import mediapipe as mp
 
@@ -14,23 +13,22 @@ class HandDetector:
         self.drawer = mp.solutions.drawing_utils
 
     def process(self, frame_bgr):
-        """Returns: (annotated_frame, landmarks_list)
-        landmarks_list: list of hands; each hand = list of (x,y,z) normalized [0..1]
-        """
         frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
         res = self.hands.process(frame_rgb)
 
-        landmarks_all = []
+        hands_out = []  # each: {"lms": [...], "label": "Left"/"Right"}
         if res.multi_hand_landmarks:
-            for hand_lms in res.multi_hand_landmarks:
-                # collect landmarks
-                one_hand = []
-                for lm in hand_lms.landmark:
-                    one_hand.append((lm.x, lm.y, lm.z))
-                landmarks_all.append(one_hand)
+            for i, hand_lms in enumerate(res.multi_hand_landmarks):
+                one_hand = [(lm.x, lm.y, lm.z) for lm in hand_lms.landmark]
 
-                # draw on frame
+                label = "Unknown"
+                if res.multi_handedness and len(res.multi_handedness) > i:
+                    label = res.multi_handedness[i].classification[0].label  # "Left"/"Right"
+
+                hands_out.append({"lms": one_hand, "label": label})
+
                 self.drawer.draw_landmarks(
                     frame_bgr, hand_lms, self.mp_hands.HAND_CONNECTIONS
                 )
-        return frame_bgr, landmarks_all
+
+        return frame_bgr, hands_out
