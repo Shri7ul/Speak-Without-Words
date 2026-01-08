@@ -1,156 +1,246 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Speak Without Words</title>
-
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        padding: 16px;
-        background: #fafafa;
-      }
-
-      .wrap {
-        display: flex;
-        gap: 16px;
-        align-items: flex-start;
-        flex-wrap: wrap;
-      }
-
-      .card {
-        padding: 14px;
-        border: 1px solid #ddd;
-        border-radius: 16px;
-        background: white;
-      }
-
-      img {
-        width: 640px;
-        height: 480px;
-        border-radius: 16px;
-        border: 1px solid #ccc;
-      }
-
-      .badge {
-        font-size: 24px;
-        font-weight: 800;
-        padding: 12px 18px;
-        border-radius: 999px;
-        display: inline-block;
-        color: #000 !important;
-        min-width: 180px;
-        text-align: center;
-      }
-
-      .meta {
-        margin-top: 10px;
-        color: #333;
-        font-size: 14px;
-      }
-
-      /* moods */
-      .neutral { background: #eaeaea; }
-      .alert   { background: #ffcccc; }
-      .calm    { background: #dde9ff; }
-      .focus   { background: #eee3ff; }
-
-      /* pulse animation for STOP / HELP */
-      .alert {
-        animation: pulse 0.9s infinite;
-      }
-
-      @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-        100% { transform: scale(1); }
-      }
-
-      /* debug box */
-      #raw {
-        margin-top: 10px;
-        font-size: 12px;
-        color: #666;
-        word-break: break-all;
-      }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
   </head>
 
-  <body>
-    <h2>Speak Without Words (Live)</h2>
+  <body class="bg-slate-50 text-slate-900">
+    <!-- Secret Handshake Banner -->
+    <div id="unlockBanner"
+         class="hidden fixed top-6 left-1/2 -translate-x-1/2 z-50
+                px-6 py-3 rounded-2xl bg-emerald-600 text-white
+                text-lg font-extrabold shadow-xl">
+      🤝 UNDERSTOOD (Secret Code)
+    </div>
 
-    <div class="wrap">
-      <div class="card">
-        <img src="/video_feed" alt="camera stream" />
+    <div class="max-w-6xl mx-auto p-4 md:p-6">
+      <!-- Header -->
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
+        <div>
+          <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">Speak Without Words</h1>
+          <p class="text-slate-600">Gesture → Intent → Visual language (real-time)</p>
+        </div>
+
+        <!-- Mode Toggle -->
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-slate-600">Mode</span>
+          <button id="modeBtn"
+            class="px-3 py-2 rounded-xl bg-white border border-slate-200 shadow-sm text-sm font-semibold hover:bg-slate-100 active:scale-[0.99]">
+            Demo
+          </button>
+        </div>
       </div>
 
-      <div class="card" style="min-width: 300px;">
-        <div id="badge" class="badge neutral">…</div>
-        <div class="meta" id="meta">Confidence: 0.00</div>
-        <div id="raw"></div>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <!-- Video Card -->
+        <div class="lg:col-span-2 bg-white border border-slate-200 rounded-2xl shadow-sm p-3">
+          <div class="relative rounded-2xl overflow-hidden border border-slate-200">
+            <img src="/video_feed" alt="camera stream" class="w-full h-auto block" />
 
-        <p style="margin-top:14px; line-height:1.5;">
-          Try:
-          <br>⛔ Open palm = STOP
-          <br>✋ Fist = WAIT
-          <br>💙 Peace = CALM
-          <br>🚨 Open palm high = HELP
-        </p>
+            <!-- Overlay badge -->
+            <div class="absolute left-3 top-3">
+              <div id="overlayBadge"
+                   class="px-4 py-2 rounded-full font-extrabold text-white shadow-md bg-slate-700">
+                …
+              </div>
+              <div
+                class="mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/90 border border-slate-200 text-xs font-semibold text-slate-700">
+                Confidence: <span id="confTxt">0.00</span>
+              </div>
+            </div>
+
+            <!-- HELP Flash layer -->
+            <div id="helpFlash" class="hidden absolute inset-0 bg-red-200/40"></div>
+          </div>
+
+          <!-- Hint chips -->
+          <div class="mt-3 flex flex-wrap gap-2 text-sm">
+            <span class="px-3 py-1 rounded-full bg-slate-100 border border-slate-200">⛔ Open palm → STOP</span>
+            <span class="px-3 py-1 rounded-full bg-slate-100 border border-slate-200">✋ Fist → WAIT</span>
+            <span class="px-3 py-1 rounded-full bg-slate-100 border border-slate-200">💙 Peace → CALM</span>
+            <span class="px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 font-semibold">🚨 Open palm high → HELP</span>
+            <span class="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 font-semibold">🤝 Peace → Fist → Palm = UNDERSTOOD</span>
+          </div>
+        </div>
+
+        <!-- Status Card -->
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-extrabold">Status</h2>
+            <span id="pillMood" class="text-xs font-bold px-2 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700">
+              neutral
+            </span>
+          </div>
+
+          <div class="mt-3">
+            <div class="text-sm text-slate-600">Current</div>
+            <div id="bigLabel" class="mt-1 text-3xl font-extrabold tracking-tight">…</div>
+            <div class="mt-2 text-sm text-slate-600">Gesture: <span id="gestureTxt" class="font-bold text-slate-900">NONE</span></div>
+          </div>
+
+          <!-- Confidence bar -->
+          <div class="mt-4">
+            <div class="flex items-center justify-between text-xs text-slate-600">
+              <span>Confidence</span>
+              <span id="confPct">0%</span>
+            </div>
+            <div class="mt-1 h-2 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
+              <div id="confBar" class="h-full w-0 bg-slate-700"></div>
+            </div>
+          </div>
+
+          <!-- History -->
+          <div class="mt-5">
+            <div class="flex items-center justify-between">
+              <div class="text-sm font-bold">Recent (smoothed)</div>
+              <button id="clearBtn"
+                class="hidden px-2 py-1 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100">
+                Clear
+              </button>
+            </div>
+            <div id="historyRow" class="mt-2 flex flex-wrap gap-2"></div>
+          </div>
+
+          <!-- Dev panel -->
+          <div id="devPanel" class="hidden mt-5 p-3 rounded-2xl bg-slate-50 border border-slate-200">
+            <div class="text-xs font-bold text-slate-700 mb-2">Dev Debug</div>
+            <pre id="raw" class="text-[11px] leading-snug text-slate-700 whitespace-pre-wrap break-all"></pre>
+          </div>
+
+          <div class="mt-6 text-xs text-slate-500">
+            Tip: Keep palm facing camera for best stability.
+          </div>
+        </div>
       </div>
     </div>
 
     <script>
+      let mode = "demo";
       let lastGesture = "NONE";
 
-      // 🔊 Optional sound (future use)
-      // To enable:
-      // 1) Put beep.mp3 inside /static folder
-      // 2) Uncomment the next line
-       const beep = new Audio("/static/beep.mp3");
+      const modeBtn = document.getElementById("modeBtn");
+      const devPanel = document.getElementById("devPanel");
+      const clearBtn = document.getElementById("clearBtn");
+
+      modeBtn.addEventListener("click", () => {
+        mode = (mode === "demo") ? "dev" : "demo";
+        modeBtn.textContent = (mode === "demo") ? "Demo" : "Dev";
+        devPanel.classList.toggle("hidden", mode !== "dev");
+        clearBtn.classList.toggle("hidden", mode !== "dev");
+      });
+
+      clearBtn.addEventListener("click", () => {
+        document.getElementById("historyRow").innerHTML = "";
+      });
+
+      function moodStyles(mood){
+        if (mood === "alert") return "bg-red-600";
+        if (mood === "calm")  return "bg-blue-600";
+        if (mood === "focus") return "bg-violet-600";
+        if (mood === "good")  return "bg-emerald-600";
+        return "bg-slate-700";
+      }
+
+      function labelIcon(label){
+        if (label === "STOP") return "⛔ STOP";
+        if (label === "WAIT") return "✋ WAIT";
+        if (label === "CALM") return "💙 CALM";
+        if (label === "HELP") return "🚨 HELP";
+        if (label === "UNDERSTOOD") return "🤝 UNDERSTOOD";
+        return label || "…";
+      }
+
+      function renderHistory(hist){
+        const row = document.getElementById("historyRow");
+        row.innerHTML = "";
+        (hist || []).slice(-7).forEach(g => {
+          const textMap = {
+            "OPEN_PALM": "STOP",
+            "FIST": "WAIT",
+            "PEACE": "CALM",
+            "HELP": "HELP",
+            "UNDERSTOOD": "UNDERSTOOD",
+            "NONE": "…"
+          };
+          const t = textMap[g] || g;
+
+          const chip = document.createElement("span");
+          chip.className = "px-2.5 py-1 rounded-full text-xs font-bold border border-slate-200 bg-white text-slate-800";
+          chip.textContent = t;
+          row.appendChild(chip);
+        });
+      }
 
       async function tick(){
         try{
           const res = await fetch("/predict?_=" + Date.now());
           const data = await res.json();
 
-          const badge = document.getElementById("badge");
+          const mood = data.mood || "neutral";
+          const label = data.label || data.gesture || "…";
+          const g = data.gesture || "NONE";
+          const conf = Number(data.confidence ?? 0);
 
-          // fallback chain: icon → text → label → gesture
-          const icon = data.icon || "";
-          const text = data.text || data.label || data.gesture || "…";
+          // Overlay badge
+          const overlayBadge = document.getElementById("overlayBadge");
+          overlayBadge.textContent = labelIcon(label);
+          overlayBadge.className = "px-4 py-2 rounded-full font-extrabold text-white shadow-md " + moodStyles(mood);
 
-          badge.innerText = icon ? (icon + " " + text) : text;
-          badge.className = "badge " + (data.mood || "neutral");
+          // Overlay conf
+          document.getElementById("confTxt").textContent = conf.toFixed(2);
 
-          document.getElementById("meta").innerText =
-            "Confidence: " + (data.confidence ?? 0).toFixed(2) +
-            " | Gesture: " + (data.gesture || "NONE");
+          // Right panel
+          document.getElementById("bigLabel").textContent = labelIcon(label);
+          document.getElementById("gestureTxt").textContent = g;
 
-          // Debug raw JSON (remove before final submission)
-          const raw = document.getElementById("raw");
-          if (raw) raw.innerText = "RAW: " + JSON.stringify(data);
+          const pill = document.getElementById("pillMood");
+          pill.textContent = mood;
+          pill.className = "text-xs font-bold px-2 py-1 rounded-full border " +
+            (mood === "alert" ? "bg-red-50 border-red-200 text-red-700"
+            : mood === "calm" ? "bg-blue-50 border-blue-200 text-blue-700"
+            : mood === "focus"? "bg-violet-50 border-violet-200 text-violet-700"
+            : mood === "good" ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+            : "bg-slate-100 border-slate-200 text-slate-700");
 
-          // 🚨 HELP visual + sound trigger (sound optional)
-          if (data.gesture === "HELP" && lastGesture !== "HELP") {
-            document.body.style.background = "#ffe6e6";
-            setTimeout(() => {
-              document.body.style.background = "#fafafa";
-            }, 300);
+          // Confidence bar
+          const pct = Math.max(0, Math.min(1, conf));
+          document.getElementById("confPct").textContent = Math.round(pct * 100) + "%";
+          document.getElementById("confBar").style.width = Math.round(pct * 100) + "%";
 
-            // 🔔 Uncomment if you add beep.mp3
-             beep.play();
+          // History
+          renderHistory(data.history);
+
+          // Dev raw
+          if (mode === "dev") {
+            document.getElementById("raw").textContent = JSON.stringify(data, null, 2);
           }
 
-          lastGesture = data.gesture;
+          // HELP flash
+          const flash = document.getElementById("helpFlash");
+          if (g === "HELP" && lastGesture !== "HELP") {
+            flash.classList.remove("hidden");
+            setTimeout(() => flash.classList.add("hidden"), 250);
+          }
 
-        } catch(err){
-          console.log(err);
+          // 🤝 UNDERSTOOD banner
+          const banner = document.getElementById("unlockBanner");
+          if (g === "UNDERSTOOD") {
+            banner.classList.remove("hidden");
+            setTimeout(() => banner.classList.add("hidden"), 2000);
+          }
+
+          lastGesture = g;
+
+        } catch (e) {
+          // ignore
         }
       }
 
       setInterval(tick, 200);
       tick();
     </script>
-
   </body>
 </html>
