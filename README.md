@@ -181,7 +181,15 @@ Built with ❤️ by a university student exploring **Computer Vision, AI, and H
 
 ---
 
+## 🎥 Demo Video
+
+A short walkthrough demonstrating real-time hand gesture detection and intent-based responses using a webcam.
+
+🔗 **Watch the demo on LinkedIn:**  
+https://www.linkedin.com/posts/shri7ul_computervision-opencv-mediapipe-ugcPost-7415179759132966912-k57M
+
+---
+
 ## 📜 License
 
 MIT License — free to use, modify, and extend.
-
